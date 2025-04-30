@@ -15,13 +15,6 @@
 
 
     <build>
-        <extensions>
-            <extension>
-                <groupId>org.apache.maven.wagon</groupId>
-                <artifactId>wagon-ftp</artifactId>
-                <version>1.0-beta-6</version>
-            </extension>
-        </extensions>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -57,15 +50,15 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <!-- Do not include the <configuration>...</configuration> part if you are using Sponge! -->
-                <configuration>
-                    <relocations>
-                        <relocation>
-                            <pattern>org.bstats</pattern>
-                            <!-- Replace this with your package! -->
-                            <shadedPattern>com.andrei1058.bedwars.teamselector.libs</shadedPattern>
-                        </relocation>
-                    </relocations>
-                </configuration>
+<!--                <configuration>-->
+<!--                    <relocations>-->
+<!--                        <relocation>-->
+<!--                            <pattern>org.bstats</pattern>-->
+<!--                            &lt;!&ndash; Replace this with your package! &ndash;&gt;-->
+<!--                            <shadedPattern>com.andrei1058.bedwars.teamselector.libs</shadedPattern>-->
+<!--                        </relocation>-->
+<!--                    </relocations>-->
+<!--                </configuration>-->
                 <executions>
                     <execution>
                         <phase>package</phase>
