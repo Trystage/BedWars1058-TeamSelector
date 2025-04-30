@@ -79,6 +79,8 @@ public class TeamSelectorAssigner implements ITeamAssigner {
         // order final teams by less selected to synchronize with PlayerGroup comparator
         if (!registeredPreference.getSelections().isEmpty()) {
             teams.sort(Comparator.comparingInt(o -> registeredPreference.getMembers(o).size()));
+        }else{
+            Collections.shuffle(teams);
         }
 
         // assign groups to teams
