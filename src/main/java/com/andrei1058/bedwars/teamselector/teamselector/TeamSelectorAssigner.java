@@ -125,6 +125,8 @@ public class TeamSelectorAssigner implements ITeamAssigner {
                 }
             }
         }
+        
+        Collections.shuffle(teams);
 
         // assign remaining players to a team
         for (Player player : arena.getPlayers()) {
