@@ -125,11 +125,10 @@ public class TeamSelectorAssigner implements ITeamAssigner {
                 }
             }
         }
-        
-        Collections.shuffle(teams);
 
         // assign remaining players to a team
         for (Player player : arena.getPlayers()) {
+            Collections.shuffle(teams);
             if (!playersAddedToATeam.contains(player.getUniqueId())) {
                 boolean added = false;
                 for (ITeam team : teams) {
