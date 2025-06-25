@@ -69,10 +69,10 @@ public class Main extends JavaPlugin {
         registerListeners(new ArenaListener(), new InventoryListener(), new PlayerInteractListener(), new SelectorGuiUpdateListener());
 
         // bStats
-        Metrics metrics = new Metrics(this, 9091);
-        metrics.addCustomChart(new SimplePie("selector_slot", () -> String.valueOf(Config.config.getInt(Config.SELECTOR_SLOT))));
-        metrics.addCustomChart(new SimplePie("allot_team_change", () -> String.valueOf(Config.config.getBoolean(Config.ALLOW_TEAM_CHANGE))));
-        metrics.addCustomChart(new SimplePie("balance_teams", () -> String.valueOf(Config.config.getBoolean(Config.BALANCE_TEAMS))));
-        metrics.addCustomChart(new SimplePie("balance_teams", () -> String.valueOf(Config.config.getBoolean(Config.BALANCE_TEAMS))));
+//        Metrics metrics = new Metrics(this, 9091);
+//        metrics.addCustomChart(new SimplePie("selector_slot", () -> String.valueOf(Config.config.getInt(Config.SELECTOR_SLOT))));
+//        metrics.addCustomChart(new SimplePie("allot_team_change", () -> String.valueOf(Config.config.getBoolean(Config.ALLOW_TEAM_CHANGE))));
+//        metrics.addCustomChart(new SimplePie("balance_teams", () -> String.valueOf(Config.config.getBoolean(Config.BALANCE_TEAMS))));
+//        metrics.addCustomChart(new SimplePie("balance_teams", () -> String.valueOf(Config.config.getBoolean(Config.BALANCE_TEAMS))));
     }
 }
