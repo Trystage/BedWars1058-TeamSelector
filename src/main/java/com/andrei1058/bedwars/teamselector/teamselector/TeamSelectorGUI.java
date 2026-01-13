@@ -58,48 +58,44 @@ public class TeamSelectorGUI {
                 layer = new int[]{};
                 break;
             case 2:
-                layer = new int[]{11, 15};
-                size = 27;
+                layer = new int[]{3, 5, 8};
+                size = 9;
                 break;
             case 3:
-                layer = new int[]{11, 13, 15};
-                size = 27;
+                layer = new int[]{3, 4, 5, 8};
+                size = 9;
                 break;
             case 4:
-                layer = new int[]{10, 12, 14, 16};
-                size = 27;
+                layer = new int[]{2, 3, 4, 5, 8};
+                size = 9;
                 break;
             case 5:
-                layer = new int[]{11, 12, 13, 14, 15};
-                size = 27;
+                layer = new int[]{2, 3, 4, 5, 6, 8};
+                size = 9;
                 break;
             case 6:
-                layer = new int[]{10, 11, 12, 14, 15, 16};
-                size = 27;
+                layer = new int[]{1, 2, 3, 4, 5, 6, 8};
+                size = 9;
                 break;
             case 7:
-                layer = new int[]{10, 11, 12, 13, 14, 15, 16};
-                size = 27;
+                layer = new int[]{1, 2, 3, 4, 5, 6, 7, 8};
+                size = 9;
                 break;
             case 8:
-                layer = new int[]{10, 12, 14, 16, 28, 30, 32, 34};
-                size = 45;
+                layer = new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8};
+                size = 9;
                 break;
             case 9:
-                layer = new int[]{10, 11, 12, 14, 15, 16, 30, 31, 32};
-                size = 45;
+                layer = new int[]{2, 3, 4, 5, 6, 11, 12, 14, 15, 17};
+                size = 18;
                 break;
             case 10:
-                layer = new int[]{11, 12, 13, 14, 15, 20, 21, 22, 23, 24};
-                size = 36;
-                break;
-            case 11:
-                layer = new int[]{11, 12, 13, 14, 15, 19, 20, 21, 23, 24, 25};
-                size = 36;
+                layer = new int[]{2, 3, 4, 5, 6, 11, 12, 13, 14, 15, 17};
+                size = 18;
                 break;
             case 12:
-                layer = new int[]{10, 11, 12, 14, 15, 16, 19, 20, 21, 23, 24, 25};
-                size = 45;
+                layer = new int[]{1, 2, 3, 4, 5, 6, 10, 11, 12, 13, 14, 15, 17};
+                size = 18;
                 break;
         }
 
