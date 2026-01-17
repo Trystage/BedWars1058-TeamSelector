@@ -268,7 +268,7 @@ public class TeamSelectorGUI {
     public static void giveItem(Player p, ITeam team) {
         ItemStack i;
         try {
-            i = new ItemStack(Material.valueOf(Config.config.getString(Config.SELECTOR_ITEM_STACK_MATERIAL)));
+            i = new ItemStack(Material.NOTE_BLOCK);
         } catch (Exception ex) {
             Main.plugin.getLogger().severe("Team-Selector Material is invalid!");
             //noinspection CallToPrintStackTrace
