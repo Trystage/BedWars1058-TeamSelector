@@ -3,6 +3,7 @@ package com.andrei1058.bedwars.teamselector.teamselector;
 import com.andrei1058.bedwars.api.arena.IArena;
 import com.andrei1058.bedwars.api.arena.team.ITeam;
 import com.andrei1058.bedwars.api.arena.team.ITeamAssigner;
+import com.andrei1058.bedwars.api.arena.team.TeamColor;
 import com.andrei1058.bedwars.api.events.gameplay.TeamAssignEvent;
 import com.andrei1058.bedwars.teamselector.Main;
 import org.bukkit.Bukkit;
@@ -14,140 +15,128 @@ import java.util.stream.Collectors;
 
 public class TeamSelectorAssigner implements ITeamAssigner {
 
-    private final LinkedList<PlayerGroup> playerGroups = new LinkedList<>();
-    private final List<UUID> skippedFromPartyCheck = new ArrayList<>();
-    private final List<UUID> playersAddedToATeam = new ArrayList<>();
-    private final LinkedList<ITeam> teams = new LinkedList<>();
-
     @Override
     public void assignTeams(@NotNull IArena arena) {
-        teams.addAll(arena.getTeams());
+        List<Player> players = new ArrayList<>(arena.getPlayers());
+        List<ITeam> teams = new ArrayList<>(arena.getTeams());
+        int playerCount = players.size();
+        int teamCount = teams.size();
 
-        // create groups from parties
-        for (Player player : arena.getPlayers()) {
-            // check if is party owner or someone with a big rank to identify a party
-            if (!skippedFromPartyCheck.contains(player.getUniqueId()) && Main.bw.getPartyUtil().isOwner(player)) {
-                // all party members will be added to a skip list in case there are more members with
-                // a rank that allow them to join games.
-                // To be more explicit #isOwner may return true for more than a player.
-                Deque<Player> partyMembers = new LinkedList<>();
-                for (Player inParty : Main.bw.getPartyUtil().getMembers(player)) {
-                    // if partied player is not engaged in another game or in lobby
-                    if (arena.isPlayer(inParty)) {
-                        partyMembers.add(inParty);
-                        skippedFromPartyCheck.add(inParty.getUniqueId());
-                    }
-                }
-                // some parties do not include the party owner in the members list, so we check if he was included
-                if (!partyMembers.contains(player)) {
-                    partyMembers.add(player);
-                    skippedFromPartyCheck.add(player.getUniqueId());
-                }
+        if (playerCount == 0 || teamCount == 0) {
+            return;
+        }
 
-                // if is alone skip step
-                if (partyMembers.size() < 2) continue;
+        // 打乱玩家顺序，避免原来的顺序影响分配
+        Collections.shuffle(players);
 
-                // cache parties in new groups of players and split parties bigger than max in team
-                PlayerGroup playerGroup = null;
-                do {
-                    // on first occurrence or if the group is filled
-                    if (playerGroup == null || playerGroup.getMembers().size() == arena.getMaxInTeam()) {
-                        playerGroup = new PlayerGroup(arena, null);
-                        playerGroups.add(playerGroup);
-                    }
-                    // current player
-                    Player toBeAdded = partyMembers.pollFirst();
-                    playerGroup.addPlayer(toBeAdded);
-                } while (!partyMembers.isEmpty());
+        // 根据人数选择分配策略
+        if (playerCount == 2 || playerCount == 4 || playerCount == 6 || playerCount == 8) {
+            // 平均分配到两个指定队伍
+            assignToTwoTeams(arena, players, teams);
+        } else if (playerCount == 3 || playerCount == 5 || playerCount == 7) {
+            // 平均分配到所有队伍
+            assignEvenlyToAllTeams(arena, players, teams);
+        } else {
+            // 9 人及以上：完全随机分配
+            assignRandomly(arena, players, teams);
+        }
+    }
+
+    /**
+     * 将玩家平均分配到两个队伍（优先红绿/红蓝，否则随机两个）
+     */
+    private void assignToTwoTeams(IArena arena, List<Player> players, List<ITeam> teams) {
+        List<ITeam> targetTeams = findTwoTargetTeams(teams);
+        if (targetTeams.size() < 2) return;
+
+        ITeam teamA = targetTeams.get(0);
+        ITeam teamB = targetTeams.get(1);
+        int half = players.size() / 2;
+
+        // 前一半给 teamA，后一半给 teamB
+        for (int i = 0; i < players.size(); i++) {
+            Player p = players.get(i);
+            ITeam target = (i < half) ? teamA : teamB;
+            target.addPlayers(p);
+            callTeamAssignEvent(p, target, arena);
+        }
+    }
+
+    /**
+     * 从队伍列表中找到两个目标队伍（优先红/绿，其次红/蓝，否则随机）
+     */
+    private List<ITeam> findTwoTargetTeams(List<ITeam> teams) {
+        ITeam redTeam = null;
+        ITeam greenTeam = null;
+
+        for (ITeam team : teams) {
+            TeamColor color = team.getColor();
+            if (color == TeamColor.RED) {
+                redTeam = team;
+            } else if (color == TeamColor.GREEN) {
+                greenTeam = team;
             }
         }
 
-        // create groups from registered preferences
-        ArenaPreferences registeredPreference = TeamManager.getInstance().getArena(arena);
-        for (ITeam preference : registeredPreference.getSelections().values().stream().distinct().collect(Collectors.toList())) {
-            PlayerGroup playerGroup = new PlayerGroup(arena, preference);
-            for (Player teamSelector : registeredPreference.getMembers(preference)) {
-                // players amount in that case cannot be bigger than max in team, so we don't have to split anything
-                playerGroup.addPlayer(teamSelector);
-            }
-            playerGroups.add(playerGroup);
+        // 优先返回红绿队伍
+        if (redTeam != null && greenTeam != null) {
+            return Arrays.asList(redTeam, greenTeam);
         }
 
-        // order player groups
-        Collections.sort(playerGroups);
+        // 否则随机返回两个不同的队伍（复制列表避免影响原顺序）
+        List<ITeam> shuffled = new ArrayList<>(teams);
+        Collections.shuffle(shuffled);
+        return Arrays.asList(shuffled.get(0), shuffled.get(1));
+    }
 
-        // order final teams by less selected to synchronize with PlayerGroup comparator
-        if (!registeredPreference.getSelections().isEmpty()) {
-            teams.sort(Comparator.comparingInt(o -> registeredPreference.getMembers(o).size()));
-        }else{
-            Collections.shuffle(teams);
-        }
+    /**
+     * 将玩家平均分配到所有队伍（人数差不超过 1）
+     */
+    private void assignEvenlyToAllTeams(IArena arena, List<Player> players, List<ITeam> teams) {
+        int total = players.size();
+        int teamCount = teams.size();
+        int base = total / teamCount;          // 每个队伍至少多少人
+        int remainder = total % teamCount;     // 前 remainder 个队伍多一人
 
-        // assign groups to teams
-        for (PlayerGroup playerGroup : playerGroups) {
-            if (playerGroup.getMembers().isEmpty()) continue;
-            if (playerGroup.getPreference() == null) {
-                ITeam targetTeam = null;
-                for (ITeam team : teams) {
-                    if (arena.getMaxInTeam() - team.getMembers().size() >= playerGroup.getMembers().size()) {
-                        targetTeam = team;
-                        break;
-                    }
-                }
-                if (targetTeam != null) {
-                    for (Player player : playerGroup.getMembers()) {
-                        targetTeam.addPlayers(player);
-                        TeamAssignEvent teamAssignEvent = new TeamAssignEvent(player, targetTeam, arena);
-                        Bukkit.getPluginManager().callEvent(teamAssignEvent);
-                        playersAddedToATeam.add(player.getUniqueId());
-                    }
-                    // if team is filled
-                    // make team unavailable
-                    if (targetTeam.getMembers().size() == arena.getMaxInTeam()) {
-                        teams.remove(targetTeam);
-                    }
-                }
-            } else {
-                // priority on preferences that can fill an entire team.
-                // same code is used on low priority, and we check if there is still space on a possible compromised preference
-                // assign players to target team
-                for (Player player : playerGroup.getMembers()) {
-                    if (playerGroup.getPreference().getMembers().size() < arena.getMaxInTeam()) {
-                        playerGroup.getPreference().addPlayers(player);
-                        TeamAssignEvent teamAssignEvent = new TeamAssignEvent(player, playerGroup.getPreference(), arena);
-                        Bukkit.getPluginManager().callEvent(teamAssignEvent);
-                        playersAddedToATeam.add(player.getUniqueId());
-                    }
-                }
-                // make team unavailable
-                if (playerGroup.getPreference().getMembers().size() == arena.getMaxInTeam()) {
-                    teams.remove(playerGroup.getPreference());
-                }
+        int playerIndex = 0;
+        for (int i = 0; i < teamCount; i++) {
+            ITeam team = teams.get(i);
+            int membersToAdd = base + (i < remainder ? 1 : 0);
+            for (int j = 0; j < membersToAdd && playerIndex < total; j++) {
+                Player p = players.get(playerIndex++);
+                team.addPlayers(p);
+                callTeamAssignEvent(p, team, arena);
             }
         }
+    }
 
-        // assign remaining players to a team
-        for (Player player : arena.getPlayers()) {
-            Collections.shuffle(teams);
-            if (!playersAddedToATeam.contains(player.getUniqueId())) {
-                boolean added = false;
-                for (ITeam team : teams) {
-                    if (team.getMembers().size() < arena.getMaxInTeam()) {
-                        team.addPlayers(player);
-                        added = true;
-                        break;
-                    }
-                }
-                if (!added) {
-                    // if he hasn't been added to a team kick
-                    player.kickPlayer("That was unexpected: you haven't been assigned to a team!");
-                }
+    /**
+     * 完全随机分配（不考虑平均，只遵守队伍人数上限）
+     */
+    private void assignRandomly(IArena arena, List<Player> players, List<ITeam> teams) {
+        int maxInTeam = arena.getMaxInTeam();
+        Random random = new Random();
+
+        for (Player p : players) {
+            // 随机选一个未满的队伍
+            List<ITeam> availableTeams = teams.stream()
+                    .filter(t -> t.getMembers().size() < maxInTeam)
+                    .collect(Collectors.toList());
+            if (availableTeams.isEmpty()) {
+                // 所有队伍都满了，理论上不会发生，但保底处理
+                break;
             }
+            ITeam target = availableTeams.get(random.nextInt(availableTeams.size()));
+            target.addPlayers(p);
+            callTeamAssignEvent(p, target, arena);
         }
+    }
 
-        playerGroups.clear();
-        skippedFromPartyCheck.clear();
-        playersAddedToATeam.clear();
-        teams.clear();
+    /**
+     * 触发队伍分配事件
+     */
+    private void callTeamAssignEvent(Player player, ITeam team, IArena arena) {
+        TeamAssignEvent event = new TeamAssignEvent(player, team, arena);
+        Bukkit.getPluginManager().callEvent(event);
     }
 }
