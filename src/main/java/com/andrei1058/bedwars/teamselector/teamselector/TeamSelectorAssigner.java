@@ -5,7 +5,6 @@ import com.andrei1058.bedwars.api.arena.team.ITeam;
 import com.andrei1058.bedwars.api.arena.team.ITeamAssigner;
 import com.andrei1058.bedwars.api.arena.team.TeamColor;
 import com.andrei1058.bedwars.api.events.gameplay.TeamAssignEvent;
-import com.andrei1058.bedwars.teamselector.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -24,6 +23,31 @@ public class TeamSelectorAssigner implements ITeamAssigner {
 
         if (playerCount == 0 || teamCount == 0) {
             return;
+        }
+        ArenaPreferences registeredPreference = TeamManager.getInstance().getArena(arena);
+
+        List<PlayerGroup> playerGroups = new LinkedList<>();
+        for (ITeam preference : registeredPreference.getSelections().values().stream().distinct().collect(Collectors.toList())) {
+            PlayerGroup group = new PlayerGroup(arena, preference);
+            for (Player player : registeredPreference.getMembers(preference)) {
+                group.addPlayer(player);
+            }
+            playerGroups.add(group);
+        }
+
+        Collections.sort(playerGroups);
+        for (PlayerGroup group : playerGroups) {
+            if (group.getMembers().isEmpty()) continue;
+            ITeam targetTeam = group.getPreference();
+            if (targetTeam != null && targetTeam.getMembers().size() + group.getMembers().size() <= arena.getMaxInTeam()) {
+                for (Player player : group.getMembers()) {
+                    targetTeam.addPlayers(player);
+                    callTeamAssignEvent(player, targetTeam, arena);
+                }
+                if (targetTeam.getMembers().size() == arena.getMaxInTeam()) {
+                    teams.remove(targetTeam);
+                }
+            }
         }
 
         // 打乱玩家顺序，避免原来的顺序影响分配
