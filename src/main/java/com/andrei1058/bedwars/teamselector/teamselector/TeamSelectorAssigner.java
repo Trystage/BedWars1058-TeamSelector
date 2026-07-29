@@ -43,6 +43,7 @@ public class TeamSelectorAssigner implements ITeamAssigner {
                 for (Player player : group.getMembers()) {
                     targetTeam.addPlayers(player);
                     callTeamAssignEvent(player, targetTeam, arena);
+                    players.remove(player);
                 }
                 if (targetTeam.getMembers().size() == arena.getMaxInTeam()) {
                     teams.remove(targetTeam);
