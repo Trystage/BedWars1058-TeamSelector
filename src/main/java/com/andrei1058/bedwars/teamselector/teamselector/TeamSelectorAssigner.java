@@ -58,12 +58,9 @@ public class TeamSelectorAssigner implements ITeamAssigner {
         if (playerCount == 2 || playerCount == 4 || playerCount == 6 || playerCount == 8) {
             // 平均分配到两个指定队伍
             assignToTwoTeams(arena, players, teams);
-        } else if (playerCount == 3 || playerCount == 5 || playerCount == 7) {
+        } else {
             // 平均分配到所有队伍
             assignEvenlyToAllTeams(arena, players, teams);
-        } else {
-            // 9 人及以上：完全随机分配
-            assignRandomly(arena, players, teams);
         }
     }
 
@@ -74,16 +71,33 @@ public class TeamSelectorAssigner implements ITeamAssigner {
         List<ITeam> targetTeams = findTwoTargetTeams(teams);
         if (targetTeams.size() < 2) return;
 
-        ITeam teamA = targetTeams.get(0);
-        ITeam teamB = targetTeams.get(1);
-        int half = players.size() / 2;
+        targetTeams.subList(2, targetTeams.size()).clear();
 
-        // 前一半给 teamA，后一半给 teamB
-        for (int i = 0; i < players.size(); i++) {
-            Player p = players.get(i);
-            ITeam target = (i < half) ? teamA : teamB;
-            target.addPlayers(p);
-            callTeamAssignEvent(p, target, arena);
+        int max = arena.getMaxInTeam();
+        // 只保留未满的队伍
+        List<ITeam> available = new ArrayList<>();
+        for (ITeam team : targetTeams) {
+            if (team.getMembers().size() < max) {
+                available.add(team);
+            }
+        }
+        if (available.isEmpty()) return;
+        for (Player player : players) {
+            // 从可用队伍中选出当前人数最少的（如果多人最少，取第一个）
+            ITeam chosen = null;
+            int minSize = Integer.MAX_VALUE;
+            for (ITeam team : available) {
+                int size = team.getMembers().size();
+                if (size < minSize && size < max) {
+                    minSize = size;
+                    chosen = team;
+                }
+            }
+            // 如果没有可选队伍，则退出
+            if (chosen == null) break;
+
+            chosen.addPlayers(player);
+            callTeamAssignEvent(player, chosen, arena);
         }
     }
 
@@ -118,42 +132,32 @@ public class TeamSelectorAssigner implements ITeamAssigner {
      * 将玩家平均分配到所有队伍（人数差不超过 1）
      */
     private void assignEvenlyToAllTeams(IArena arena, List<Player> players, List<ITeam> teams) {
-        int total = players.size();
-        int teamCount = teams.size();
-        int base = total / teamCount;          // 每个队伍至少多少人
-        int remainder = total % teamCount;     // 前 remainder 个队伍多一人
 
-        int playerIndex = 0;
-        for (int i = 0; i < teamCount; i++) {
-            ITeam team = teams.get(i);
-            int membersToAdd = base + (i < remainder ? 1 : 0);
-            for (int j = 0; j < membersToAdd && playerIndex < total; j++) {
-                Player p = players.get(playerIndex++);
-                team.addPlayers(p);
-                callTeamAssignEvent(p, team, arena);
+        int max = arena.getMaxInTeam();
+        // 只保留未满的队伍
+        List<ITeam> available = new ArrayList<>();
+        for (ITeam team : teams) {
+            if (team.getMembers().size() < max) {
+                available.add(team);
             }
         }
-    }
-
-    /**
-     * 完全随机分配（不考虑平均，只遵守队伍人数上限）
-     */
-    private void assignRandomly(IArena arena, List<Player> players, List<ITeam> teams) {
-        int maxInTeam = arena.getMaxInTeam();
-        Random random = new Random();
-
-        for (Player p : players) {
-            // 随机选一个未满的队伍
-            List<ITeam> availableTeams = teams.stream()
-                    .filter(t -> t.getMembers().size() < maxInTeam)
-                    .collect(Collectors.toList());
-            if (availableTeams.isEmpty()) {
-                // 所有队伍都满了，理论上不会发生，但保底处理
-                break;
+        if (available.isEmpty()) return;
+        for (Player player : players) {
+            // 从可用队伍中选出当前人数最少的（如果多人最少，取第一个）
+            ITeam chosen = null;
+            int minSize = Integer.MAX_VALUE;
+            for (ITeam team : available) {
+                int size = team.getMembers().size();
+                if (size < minSize && size < max) {
+                    minSize = size;
+                    chosen = team;
+                }
             }
-            ITeam target = availableTeams.get(random.nextInt(availableTeams.size()));
-            target.addPlayers(p);
-            callTeamAssignEvent(p, target, arena);
+            // 如果没有可选队伍，则退出
+            if (chosen == null) break;
+
+            chosen.addPlayers(player);
+            callTeamAssignEvent(player, chosen, arena);
         }
     }
 
